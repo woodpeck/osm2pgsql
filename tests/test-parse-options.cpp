@@ -275,7 +275,7 @@ void test_random_perms()
         argv[args.size()] = NULL;
         for(std::vector<std::string>::const_iterator arg = args.begin(); arg != args.end(); ++arg)
             argv[arg - args.begin()] = arg->c_str();
-        options_t::parse(args.size(), const_cast<char **>(argv));
+        options_t::parse((int) args.size(), const_cast<char **>(argv));
         delete[] argv;
     }
 }

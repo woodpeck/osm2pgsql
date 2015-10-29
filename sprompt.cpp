@@ -73,7 +73,7 @@
 char *
 simple_prompt(const char *prompt, int maxlen, int echo)
 {
-	int			length;
+	size_t	   length;
 	char	   *destination;
 	FILE	   *termin,
 			   *termout;
@@ -152,7 +152,7 @@ simple_prompt(const char *prompt, int maxlen, int echo)
 	{
 		/* eat rest of the line */
 		char		buf[128];
-		int			buflen;
+		size_t		buflen;
 
 		do
 		{
