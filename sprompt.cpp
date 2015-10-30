@@ -62,6 +62,8 @@
 
 #include <libpq-fe.h>
 
+#include "config.h"
+
 #ifdef HAVE_TERMIOS_H
 #include <termios.h>
 #endif
