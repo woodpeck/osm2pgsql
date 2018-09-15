@@ -17,6 +17,7 @@ addons:
     - libboost1.55-dev
     - libboost-system1.55-dev
     - libboost-filesystem1.55-dev
+    - clang-format-3.9
 matrix:
   include:
     - os: linux
@@ -57,6 +58,9 @@ script:
   - make -j2
   - echo "Running tests that does not require PostgreSQL server"
   - if [[ $RUNTEST ]]; then ctest -VV $RUNTEST; fi
+  - git fetch origin master
+  - git-clang-format-3.9 --style=file --diff `git merge-base FETCH_HEAD HEAD` ../*pp ../tests/*pp
+  - if [[ $TRAVIS_PULL_REQUEST ]]; then git-clang-format-3.9 --style=file --diff `git merge-base FETCH_HEAD HEAD` ../*pp ../tests/*pp | file - | grep -v 'unified diff'; fi
 after_failure:
   - # rerun make, but verbosely
     make VERBOSE=1
