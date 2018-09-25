@@ -22,8 +22,8 @@
 class place_tag_processor
 {
 public:
-    place_tag_processor()
-        : single_fmt("%1%\t")
+    place_tag_processor(const options_t &options_)
+        : single_fmt("%1%\t"), m_options(options_)
     {
         places.reserve(4);
         extratags.reserve(15);
@@ -120,6 +120,7 @@ private:
     int admin_level;
 
     boost::format single_fmt;
+    const options_t &m_options;
 };
 
 
@@ -128,7 +129,9 @@ public:
     output_gazetteer_t(const middle_query_t *mid_, const options_t &options_)
     : output_t(mid_, options_), Connection(NULL), ConnectionDelete(NULL),
       ConnectionError(NULL), copy_active(false),
-      m_builder(options_.projection, true), single_fmt("%1%"),
+      places(options_),
+      m_builder(options_.projection, true), 
+      single_fmt("%1%"),
       osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
         buffer.reserve(PLACE_BUFFER_SIZE);
@@ -137,7 +140,9 @@ public:
     output_gazetteer_t(const output_gazetteer_t &other)
     : output_t(other.m_mid, other.m_options), Connection(NULL),
       ConnectionDelete(NULL), ConnectionError(NULL), copy_active(false),
-      m_builder(other.m_options.projection, true), single_fmt(other.single_fmt),
+      places(other.m_options),
+      m_builder(other.m_options.projection, true), 
+      single_fmt(other.single_fmt),
       osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
         buffer.reserve(PLACE_BUFFER_SIZE);
@@ -259,6 +264,7 @@ private:
     // Need to be part of the class, so we have one per thread.
     boost::format single_fmt;
     osmium::memory::Buffer osmium_buffer;
+
 };
 
 #endif

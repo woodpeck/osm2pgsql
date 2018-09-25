@@ -95,6 +95,7 @@ public:
     std::string input_reader;
     boost::optional<std::string> bbox;
     bool extra_attributes;
+    bool full_extratags;
     bool verbose;
 
     std::vector<std::string> input_files;

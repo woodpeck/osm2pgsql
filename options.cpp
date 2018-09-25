@@ -60,6 +60,7 @@ namespace
         {"expire-bbox-size", 1, 0, 214},
         {"output",   1, 0, 'O'},
         {"extra-attributes", 0, 0, 'x'},
+        {"full-extratags", 0, 0, 215},
         {"hstore", 0, 0, 'k'},
         {"hstore-all", 0, 0, 'j'},
         {"hstore-column", 1, 0, 'z'},
@@ -215,6 +216,9 @@ namespace
                         Include attributes for each object in the database.\n\
                         This includes the username, userid, timestamp and version.\n\
                         Requires additional entries in your style file.\n\
+          --full-extratags\n\
+                        In combination with -O gazetteer: stores all tags not otherwise\n\
+                        used in the \"extratags\" column, instead of only selected tags\n\
        -G|--multi-geometry  Generate multi-geometry features in postgresql tables.\n\
        -K|--keep-coastlines Keep coastline data rather than filtering it out.\n\
                         By default natural=coastline tagged data will be discarded\n\
@@ -300,7 +304,7 @@ options_t::options_t()
   tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
   create(false), long_usage_bool(false), pass_prompt(false),
   output_backend("pgsql"), input_reader("auto"), bbox(boost::none),
-  extra_attributes(false), verbose(false)
+  extra_attributes(false), full_extratags(false), verbose(false)
 {
     num_procs = std::thread::hardware_concurrency();
     if (num_procs < 1) {
@@ -441,6 +445,9 @@ options_t::options_t(int argc, char *argv[]): options_t()
             break;
         case 'x':
             extra_attributes = true;
+            break;
+        case 215:
+            full_extratags = true;
             break;
         case 'k':
             if (hstore_mode != HSTORE_NONE) {
@@ -619,4 +626,10 @@ void options_t::check_options()
         fprintf(stderr, "WARNING: maximum zoom level for tile expiry is too "
                         "large and has been set to 31.\n\n");
     }
+
+    if (full_extratags && output_backend != "gazetteer") {
+        fprintf(stderr, "Warning: --full-extratags only makes sense with -O gazetteer; ignored.\n");
+        full_extratags = false;
+    }
+
 }

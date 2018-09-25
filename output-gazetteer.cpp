@@ -65,13 +65,14 @@ void place_tag_processor::process_tags(osmium::OSMObject const &o)
     for (const auto &item: o.tags()) {
         char const *k = item.key();
         char const *v = item.value();
+        bool consumed = false;
         if (boost::ends_with(k, "source")) {
             // ignore
         } else if (strcmp(k, "name:prefix") == 0 ||
-                   strcmp(k, "name:suffix") == 0 ||
                    strcmp(k, "name:botanical") == 0 ||
                    boost::ends_with(k, "wikidata")) {
             extratags.push_back(&item);
+            consumed = true;
         } else if (strcmp(k, "ref") == 0 ||
                    strcmp(k, "int_ref") == 0 ||
                    strcmp(k, "nat_ref") == 0 ||
@@ -84,6 +85,7 @@ void place_tag_processor::process_tags(osmium::OSMObject const &o)
                    strcmp(k, "pcode") == 0 ||
                    boost::starts_with(k, "pcode:")) {
             names.push_back(&item);
+            consumed = true;
         } else if (strcmp(k, "name") == 0 ||
                    boost::starts_with(k, "name:") ||
                    strcmp(k, "int_name") == 0 ||
@@ -108,56 +110,77 @@ void place_tag_processor::process_tags(osmium::OSMObject const &o)
                    strcmp(k, "brand") == 0) {
             names.push_back(&item);
             isnamed = true;
+            consumed = true;
         } else if (strcmp(k, "addr:housename") == 0) {
             names.push_back(&item);
             placehouse = true;
+            consumed = true;
         } else if (strcmp(k, "emergency") == 0) {
             if (strcmp(v, "fire_hydrant") != 0 &&
                 strcmp(v, "yes") != 0 &&
-                strcmp(v, "no") != 0)
+                strcmp(v, "no") != 0) {
                 places.emplace_back(k, v);
+                consumed = true;
+            }
         } else if (strcmp(k, "tourism") == 0 ||
                    strcmp(k, "historic") == 0 ||
                    strcmp(k, "military") == 0) {
-            if (strcmp(v, "no") != 0 && strcmp(v, "yes") != 0)
+            if (strcmp(v, "no") != 0 && strcmp(v, "yes") != 0) {
                 places.emplace_back(k, v);
+                consumed = true;
+            }
         } else if (strcmp(k, "natural") == 0) {
             if (strcmp(v, "no") != 0 &&
                 strcmp(v, "yes") != 0 &&
-                strcmp(v, "coastline") != 0)
+                strcmp(v, "coastline") != 0) {
                 places.emplace_back(k, v);
+                consumed = true;
+            }
         } else if (strcmp(k, "landuse") == 0) {
             if (strcmp(v, "cemetry") == 0)
                 places.emplace_back(k, v);
             else
                 landuse = &item;
+            consumed = true;
         } else if (strcmp(k, "highway") == 0) {
             if (strcmp(v, "footway") == 0) {
                 auto *footway = o.tags()["footway"];
-                if (footway == nullptr || strcmp(footway, "sidewalk") != 0)
+                if (footway == nullptr || strcmp(footway, "sidewalk") != 0) {
                     places.emplace_back(k, v);
+                    consumed = true;
+                }
             } else if (strcmp(v, "no") != 0 &&
                 strcmp(v, "turning_circle") != 0 &&
                 strcmp(v, "mini_roundabout") != 0 &&
                 strcmp(v, "noexit") != 0 &&
-                strcmp(v, "crossing") != 0)
-                places.emplace_back(k, v);
+                strcmp(v, "crossing") != 0) {
+                    places.emplace_back(k, v);
+                    consumed = true;
+            }
         } else if (strcmp(k, "railway") == 0) {
             if (strcmp(v, "level_crossing") != 0 &&
-                strcmp(v, "no") != 0)
-                places.emplace_back(k, v);
+                strcmp(v, "no") != 0) {
+                    places.emplace_back(k, v);
+                    consumed = true;
+            }
         } else if (strcmp(k, "man_made") == 0) {
             if (strcmp(v, "survey_point") != 0 &&
-                strcmp(v, "cutline") != 0)
-                places.emplace_back(k, v);
+                strcmp(v, "cutline") != 0) {
+                    places.emplace_back(k, v);
+                    consumed = true;
+            }
         } else if (strcmp(k, "aerialway") == 0) {
             if (strcmp(v, "pylon") != 0 &&
-                strcmp(v, "no") != 0)
-                places.emplace_back(k, v);
+                strcmp(v, "no") != 0) {
+                    places.emplace_back(k, v);
+                    consumed = true;
+            }
         } else if (strcmp(k, "boundary") == 0) {
-            if (strcmp(v, "administrative") == 0)
+            if (strcmp(v, "administrative") == 0) {
                 placeadmin = true;
-            places.emplace_back(k, v);
+                places.emplace_back(k, v);
+                consumed = true;
+            }
         } else if (strcmp(k, "aeroway") == 0 ||
                    strcmp(k, "amenity") == 0 ||
                    strcmp(k, "club") == 0 ||
@@ -172,14 +195,19 @@ void place_tag_processor::process_tags(osmium::OSMObject const &o)
             if (strcmp(v, "no") != 0)
             {
                 places.emplace_back(k, v);
+                consumed = true;
             }
         } else if (strcmp(k, "waterway") == 0) {
-            if (strcmp(v, "riverbank") != 0)
+            if (strcmp(v, "riverbank") != 0) {
                 places.emplace_back(k, v);
+                consumed = true;
+            }
         } else if (strcmp(k, "place") == 0) {
             place = &item;
+            consumed = true;
         } else if (strcmp(k, "junction") == 0) {
             junction = &item;
+            consumed = true;
         } else if (strcmp(k, "postal_code") == 0 ||
                    strcmp(k, "postcode") == 0 ||
                    strcmp(k, "addr:postcode") == 0 ||
@@ -187,6 +215,7 @@ void place_tag_processor::process_tags(osmium::OSMObject const &o)
                    strcmp(k, "tiger:zip_right") == 0) {
             if (address.find("postcode") == address.end()) {
                 address.emplace("postcode", v);
+                consumed = true;
             }
         } else if (strcmp(k, "country_code") == 0 ||
                    strcmp(k, "ISO3166-1") == 0 ||
@@ -196,6 +225,7 @@ void place_tag_processor::process_tags(osmium::OSMObject const &o)
                    strcmp(k, "addr:country_code") == 0) {
             if (strlen(v) == 2 && address.find("country") == address.end()) {
                 address.emplace("country", v);
+                consumed = true;
             }
         } else if (boost::starts_with(k, "addr:")) {
             if (strcmp(k, "addr:interpolation") == 0) {
@@ -207,90 +237,101 @@ void place_tag_processor::process_tags(osmium::OSMObject const &o)
                 placehouse = true;
             }
             address.emplace(k + 5, v);
+            consumed = true;
         } else if (boost::starts_with(k, "is_in:")) {
             if (address.find(k + 6) == address.end()) {
                 address.emplace(k + 6, v);
+                consumed = true;
             }
         } else if (strcmp(k, "is_in") == 0 ||
                    strcmp(k, "tiger:county") == 0) {
             address.emplace(k, v);
+            consumed = true;
         } else if (strcmp(k, "admin_level") == 0) {
             admin_level = atoi(v);
+            consumed = true;
             if (admin_level <= 0 || admin_level > MAX_ADMINLEVEL)
                 admin_level = MAX_ADMINLEVEL;
-        } else if (strcmp(k, "tracktype") == 0 ||
-                   strcmp(k, "traffic_calming") == 0 ||
-                   strcmp(k, "service") == 0 ||
-                   strcmp(k, "cuisine") == 0 ||
-                   strcmp(k, "capital") == 0 ||
-                   strcmp(k, "dispensing") == 0 ||
-                   strcmp(k, "religion") == 0 ||
-                   strcmp(k, "denomination") == 0 ||
-                   strcmp(k, "sport") == 0 ||
-                   strcmp(k, "internet_access") == 0 ||
-                   strcmp(k, "lanes") == 0 ||
-                   strcmp(k, "surface") == 0 ||
-                   strcmp(k, "smoothness") == 0 ||
-                   strcmp(k, "width") == 0 ||
-                   strcmp(k, "est_width") == 0 ||
-                   strcmp(k, "incline") == 0 ||
-                   strcmp(k, "opening_hours") == 0 ||
-                   strcmp(k, "collection_times") == 0 ||
-                   strcmp(k, "service_times") == 0 ||
-                   strcmp(k, "disused") == 0 ||
-                   strcmp(k, "wheelchair") == 0 ||
-                   strcmp(k, "sac_scale") == 0 ||
-                   strcmp(k, "trail_visibility") == 0 ||
-                   strcmp(k, "mtb:scale") == 0 ||
-                   strcmp(k, "mtb:description") == 0 ||
-                   strcmp(k, "wood") == 0 ||
-                   strcmp(k, "drive_through") == 0 ||
-                   strcmp(k, "drive_in") == 0 ||
-                   strcmp(k, "access") == 0 ||
-                   strcmp(k, "vehicle") == 0 ||
-                   strcmp(k, "bicyle") == 0 ||
-                   strcmp(k, "foot") == 0 ||
-                   strcmp(k, "goods") == 0 ||
-                   strcmp(k, "hgv") == 0 ||
-                   strcmp(k, "motor_vehicle") == 0 ||
-                   strcmp(k, "motor_car") == 0 ||
-                   boost::starts_with(k, "access:") ||
-                   boost::starts_with(k, "contact:") ||
-                   boost::starts_with(k, "drink:") ||
-                   strcmp(k, "oneway") == 0 ||
-                   strcmp(k, "date_on") == 0 ||
-                   strcmp(k, "date_off") == 0 ||
-                   strcmp(k, "day_on") == 0 ||
-                   strcmp(k, "day_off") == 0 ||
-                   strcmp(k, "hour_on") == 0 ||
-                   strcmp(k, "hour_off") == 0 ||
-                   strcmp(k, "maxweight") == 0 ||
-                   strcmp(k, "maxheight") == 0 ||
-                   strcmp(k, "maxspeed") == 0 ||
-                   strcmp(k, "fee") == 0 ||
-                   strcmp(k, "toll") == 0 ||
-                   boost::starts_with(k, "toll:") ||
-                   strcmp(k, "charge") == 0 ||
-                   strcmp(k, "population") == 0 ||
-                   strcmp(k, "description") == 0 ||
-                   strcmp(k, "image") == 0 ||
-                   strcmp(k, "attribution") == 0 ||
-                   strcmp(k, "fax") == 0 ||
-                   strcmp(k, "email") == 0 ||
-                   strcmp(k, "url") == 0 ||
-                   strcmp(k, "website") == 0 ||
-                   strcmp(k, "phone") == 0 ||
-                   strcmp(k, "real_ale") == 0 ||
-                   strcmp(k, "smoking") == 0 ||
-                   strcmp(k, "food") == 0 ||
-                   strcmp(k, "camera") == 0 ||
-                   strcmp(k, "brewery") == 0 ||
-                   strcmp(k, "locality") == 0 ||
-                   strcmp(k, "wikipedia") == 0 ||
-                   boost::starts_with(k, "wikipedia:")) {
-            extratags.push_back(&item);
         } else if (strcmp(k, "building") == 0) {
             placebuilding = true;
+            consumed = true;
+        }
+
+        if (!consumed)
+        {
+            if (m_options.full_extratags ||
+                strcmp(k, "tracktype") == 0 ||
+                strcmp(k, "traffic_calming") == 0 ||
+                strcmp(k, "service") == 0 ||
+                strcmp(k, "cuisine") == 0 ||
+                strcmp(k, "capital") == 0 ||
+                strcmp(k, "dispensing") == 0 ||
+                strcmp(k, "religion") == 0 ||
+                strcmp(k, "denomination") == 0 ||
+                strcmp(k, "sport") == 0 ||
+                strcmp(k, "internet_access") == 0 ||
+                strcmp(k, "lanes") == 0 ||
+                strcmp(k, "surface") == 0 ||
+                strcmp(k, "smoothness") == 0 ||
+                strcmp(k, "width") == 0 ||
+                strcmp(k, "est_width") == 0 ||
+                strcmp(k, "incline") == 0 ||
+                strcmp(k, "opening_hours") == 0 ||
+                strcmp(k, "collection_times") == 0 ||
+                strcmp(k, "service_times") == 0 ||
+                strcmp(k, "disused") == 0 ||
+                strcmp(k, "wheelchair") == 0 ||
+                strcmp(k, "sac_scale") == 0 ||
+                strcmp(k, "trail_visibility") == 0 ||
+                strcmp(k, "mtb:scale") == 0 ||
+                strcmp(k, "mtb:description") == 0 ||
+                strcmp(k, "wood") == 0 ||
+                strcmp(k, "drive_through") == 0 ||
+                strcmp(k, "drive_in") == 0 ||
+                strcmp(k, "access") == 0 ||
+                strcmp(k, "vehicle") == 0 ||
+                strcmp(k, "bicyle") == 0 ||
+                strcmp(k, "foot") == 0 ||
+                strcmp(k, "goods") == 0 ||
+                strcmp(k, "hgv") == 0 ||
+                strcmp(k, "motor_vehicle") == 0 ||
+                strcmp(k, "motor_car") == 0 ||
+                boost::starts_with(k, "access:") ||
+                boost::starts_with(k, "contact:") ||
+                boost::starts_with(k, "drink:") ||
+                strcmp(k, "oneway") == 0 ||
+                strcmp(k, "date_on") == 0 ||
+                strcmp(k, "date_off") == 0 ||
+                strcmp(k, "day_on") == 0 ||
+                strcmp(k, "day_off") == 0 ||
+                strcmp(k, "hour_on") == 0 ||
+                strcmp(k, "hour_off") == 0 ||
+                strcmp(k, "maxweight") == 0 ||
+                strcmp(k, "maxheight") == 0 ||
+                strcmp(k, "maxspeed") == 0 ||
+                strcmp(k, "fee") == 0 ||
+                strcmp(k, "toll") == 0 ||
+                boost::starts_with(k, "toll:") ||
+                strcmp(k, "charge") == 0 ||
+                strcmp(k, "population") == 0 ||
+                strcmp(k, "description") == 0 ||
+                strcmp(k, "image") == 0 ||
+                strcmp(k, "attribution") == 0 ||
+                strcmp(k, "fax") == 0 ||
+                strcmp(k, "email") == 0 ||
+                strcmp(k, "url") == 0 ||
+                strcmp(k, "website") == 0 ||
+                strcmp(k, "phone") == 0 ||
+                strcmp(k, "real_ale") == 0 ||
+                strcmp(k, "smoking") == 0 ||
+                strcmp(k, "food") == 0 ||
+                strcmp(k, "camera") == 0 ||
+                strcmp(k, "brewery") == 0 ||
+                strcmp(k, "locality") == 0 ||
+                strcmp(k, "wikipedia") == 0 ||
+                boost::starts_with(k, "wikipedia:")) {
+                    extratags.push_back(&item);
+            }
         }
     }
 
@@ -423,6 +464,25 @@ void place_tag_processor::copy_out(osmium::OSMObject const &o,
                 escape_array_record(entry->key(), buffer);
                 buffer += "\"=>\"";
                 escape_array_record(entry->value(), buffer);
+                buffer += "\",";
+            }
+            // this should ideally be made to use the code that already exists
+            // in osmtypes.hpp
+            if (m_options.full_extratags && m_options.extra_attributes) {
+                buffer += "\"osm_version\"=>\"";
+                escape_array_record(std::to_string(o.version()), buffer);
+                buffer += "\",\"osm_timestamp\"=>\"";
+                escape_array_record(o.timestamp().to_iso(), buffer);
+                if (o.uid()) {
+                    buffer += "\",\"osm_user\"=>\"";
+                    escape_array_record(o.user(), buffer);
+                    buffer += "\",\"osm_uid\"=>\"";
+                    escape_array_record(std::to_string(o.uid()), buffer);
+                }
+                if (o.changeset()) {
+                    buffer += "\",\"osm_changeset\"=>\"";
+                    escape_array_record(std::to_string(o.changeset()), buffer);
+                }
                 buffer += "\",";
             }
             buffer[buffer.length() - 1] = '\t';
